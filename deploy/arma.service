@@ -1,0 +1,63 @@
+[Unit]
+Description=ARMA - birmarket.az marja sistemi (Flask, tek isci + thread)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/arma
+
+# Acik internetde giris MECBURIDIR. Hash verilmezse tetbiq hec ne servis
+# etmir (503) - yanlis qurulmus server aciq qalmir, bagli qalir.
+Environment=ARMA_REQUIRE_AUTH=1
+# Caddy arxasindadir: X-Forwarded-For-a etibar et ki, parol tixaci real
+# istifadeci IP-sine gore islesin, hamiya 127.0.0.1 gorunmesin.
+Environment=ARMA_TRUST_PROXY=1
+Environment=ARMA_ADMIN_USER=Admin
+
+# Yayin (yazma) terefi BAGLI: /publish ve /api/publish/* 404 verir.
+# ARMA_REQUIRE_AUTH=1 onsuz da bunu defolt baglayir; burada ACIQ yazilir ki,
+# niyeti kimse tesadufen deyismesin. Iki sebeb:
+#   1. Texniki: executor.py Chrome-u headless=False ile acir ve wait_for_login
+#      ile 300 saniye INSAN girisi gozleyir. Bu VPS-de ekran yoxdur, Chrome
+#      qurulmayib - axin burada onsuz da isleye bilmez.
+#   2. Tehlukesizlik: launch_persistent_context birmarket Business kabinetinin
+#      giris etmis sessiyasini diskde saxlayir, /api/publish/live ise real
+#      magazaya GERI ALINMAYAN yazi edir. Tek parolun arxasinda acig
+#      internetde durmamalidir.
+# Yazma isi lokal komputerde gorulur - Chrome da, sahib de oradadir.
+Environment=ARMA_PUBLISH=0
+
+# PAROL BU FAYLDA DEYIL. Yalniz root oxuya bilen drop-in-de durur:
+#
+#   cd /opt/arma && .venv/bin/python -m arma.auth   # parolu gizli sorusur
+#   mkdir -p /etc/systemd/system/arma.service.d
+#   nano /etc/systemd/system/arma.service.d/10-parol.conf
+#       [Service]
+#       Environment="ARMA_ADMIN_PASSWORD_HASH=scrypt:32768:8:1$..."
+#   chmod 600 /etc/systemd/system/arma.service.d/10-parol.conf
+#   systemctl daemon-reload && systemctl restart arma
+#
+# Duz metn ucun ARMA_ADMIN_PASSWORD da isleyir, amma o zaman parol unit
+# faylinda ve proses muhitinde gorunur - serverde istifade etmeyin.
+
+# -w 1: BIR isci prosesi, cox thread. Iki sebebden, ikisi de real:
+#   1. fetcher.py-deki suret limiti qoruyucusu (_fail_streak, _cooldown_until)
+#      PROSES-YERLI modul deyisenidir. Iki isci = iki ayri sayğac = birmarket-e
+#      iki qat sorgu, ve 90 saniyelik soyuma vaxtinda islemir. README-deki
+#      20.08.2026 dersi ("~100 ardicil sorgudan sonra birmarket dayanir")
+#      tam bunun ucundur.
+#   2. Toplu yoxlama arxa fonda threading.Thread ile eyni prosesde gedir.
+# --timeout 120: axtaris birmarket-in cavabini gozleyir, standart 30s azdir.
+ExecStart=/opt/arma/.venv/bin/gunicorn \
+    --bind 127.0.0.1:4300 \
+    --workers 1 --threads 8 \
+    --timeout 120 --graceful-timeout 30 \
+    --access-logfile - --error-logfile - \
+    "arma:create_app()"
+
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

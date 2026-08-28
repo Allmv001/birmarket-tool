@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Toplu yoxlama — ARMA{% endblock %}
+{% block pagetitle %}Toplu yoxlama{% endblock %}
+{% block content %}
+
+<h1>Toplu yoxlama 🤖</h1>
+<p class="sub">Bir dəfəyə çoxlu məhsul: WhatsApp elan şəkillərini atın və/və ya
+  kod+maya siyahısı yazın — hamısı arxa fonda axtarılacaq, proqres burada görünəcək.
+  Səhifəni bağlasanız da iş davam edir.</p>
+
+{% if job %}
+<div class="card">
+  {% if not job.finished %}
+    <div class="card-head">
+      <h3>⏳ Yoxlama gedir…</h3>
+      <form method="post" action="{{ url_for('views.batch_cancel', job_id=job.id) }}"
+            onsubmit="return confirm('Tapşırıq dayandırılsın? İndiyədək tapılanlar qalacaq.')">
+        <button type="submit" class="btn btn-ghost btn-sm">■ Dayandır</button>
+      </form>
+    </div>
+
+    <div class="rate-warn" id="rateWarn" role="status"></div>
+
+    {% if job.img_total %}
+      <p>📷 Şəkillər oxunur: <b id="jobImg">{{ job.img_done }}/{{ job.img_total }}</b></p>
+    {% endif %}
+    <p>🔎 Axtarış: <b id="jobDone">{{ job.done }}/{{ job.total }}</b>
+       — hazırda: <b id="jobCurrent">{{ job.current or '—' }}</b>
+       <span class="muted">(<span id="jobPct">{{ job.percent }}%</span>)</span></p>
+
+    <div class="progress" role="progressbar" aria-label="Yoxlama proqresi"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ job.percent }}">
+      <span id="jobBar" style="width:{{ job.percent }}%"></span>
+    </div>
+    <p class="muted">Proqres canlı yenilənir — səhifə yenidən yüklənmir.
+      Sürət limitinə düşəndə sistem 90 saniyəlik fasilə verib özü davam edir.</p>
+  {% else %}
+    <h3>
+      {% if job.state == 'done' %}✅ Yoxlama bitdi — {{ job.done }}/{{ job.total }}
+      {% elif job.state == 'cancelled' %}■ Dayandırıldı — {{ job.done }}/{{ job.total }} tamamlandı
+      {% else %}⚠️ Xəta ilə bitdi — {{ job.done }}/{{ job.total }}{% endif %}
+    </h3>
+    <p class="muted">Nəticələr Paneldə də saxlanılır.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% for e in errors or [] %}
+  <div class="notice warn">⚠️ {{ e }}</div>
+{% endfor %}
+
+{% if results %}
+<h2>Nəticələr{% if job and not job.finished %} (indiyədək){% endif %}</h2>
+<div class="card flush">
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Kod</th><th class="num">Maya (₼)</th><th class="num">Tapılan</th>
+        <th class="num">Uyğun</th><th class="num">Ən yüksək marja</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for r in results %}
+    <tr class="{{ 'row-match' if r['hits'] }}">
+      <td><b>{{ r['code'] }}</b></td>
+      <td class="num">{{ '%.2f'|format(r['cost']) }}</td>
+      <td class="num">{{ r.get('found', '—') }}</td>
+      <td class="num">{{ r['hits'] }}</td>
+      <td class="num">{% if r['best'] %}+{{ r['best'] }}%{% else %}—{% endif %}</td>
+      <td class="shrink">
+        <a href="{{ url_for('views.check_detail', check_id=r['id']) }}">Aç →</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+<div class="actions tight">
+  <a class="btn btn-primary"
+     href="{{ url_for('views.links_page', ids=results|map(attribute='id')|join(',')) }}">
+    🔗 Bütün linkləri bir səhifədə aç</a>
+  <span class="muted">orada hamısını bir dəfəyə kopyalaya və Excel yükləyə bilərsiniz</span>
+</div>
+{% endif %}
+
+{% if not job or job.finished %}
+<h2>Yeni toplu yoxlama</h2>
+<div class="card">
+<form method="post" action="{{ url_for('views.batch') }}" enctype="multipart/form-data">
+  <div class="field">
+    <label for="images">📷 Elan şəkilləri (bir neçəsini seçə bilərsiniz)</label>
+    <input type="file" id="images" name="images" accept="image/*" multiple
+           {% if not has_key %}disabled{% endif %}>
+    {% if not has_key %}
+      <div class="hint">Şəkildən avtomatik oxuma üçün
+        <a href="{{ url_for('views.settings') }}">Ayarlarda</a> Claude API açarı təyin edin.
+        Açarsız aşağıdakı mətn rejimi tam işləyir.</div>
+    {% else %}
+      <div class="hint">💡 Topdan qruplarında kod və qiymət adətən şəklin ALTINDAKI mətndədir —
+        <a href="{{ url_for('views.whatsapp') }}">💬 WhatsApp səhifəsi</a> pulsuzdur
+        və daha dəqiqdir.</div>
+    {% endif %}
+  </div>
+
+  <div class="field">
+    <label for="lines">📝 Və/və ya mətn siyahısı — hər sətirdə: KOD MAYA</label>
+    <textarea id="lines" name="lines" class="code"
+              placeholder="R.209 68&#10;R.224 48&#10;R.2890, 52"></textarea>
+  </div>
+
+  <div class="grid">
+    <div>
+      <label for="thr">Marja həddi (əmsal)</label>
+      <input type="text" id="thr" name="threshold" value="{{ threshold }}">
+    </div>
+    <div>
+      <label for="brands">Brend(lər) — istəyə bağlı, vergüllə</label>
+      <input type="text" id="brands" name="brands" placeholder="raf, lord">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">Hamısını yoxla 🤖</button>
+  </div>
+</form>
+</div>
+{% endif %}
+
+{% if history %}
+<h2>Son tapşırıqlar</h2>
+<div class="card flush">
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Tarix</th><th>Vəziyyət</th><th class="num">Nəticə</th><th></th></tr></thead>
+  <tbody>
+  {% for j in history %}
+    <tr>
+      <td class="muted">{{ j.created_at }}</td>
+      <td>
+        {% if j.state == 'done' %}<span class="pill ok">✓ bitdi</span>
+        {% elif j.state == 'running' %}<span class="pill info">⏳ gedir</span>
+        {% elif j.state == 'queued' %}<span class="pill info">növbədə</span>
+        {% elif j.state == 'cancelled' %}<span class="pill low">dayandırıldı</span>
+        {% else %}<span class="pill warn">xəta</span>{% endif %}
+      </td>
+      <td class="num">{{ j.done }}/{{ j.total }}</td>
+      <td class="shrink">
+        <a href="{{ url_for('views.batch_job', job_id=j.id) }}">Aç →</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if job and not job.finished %}
+<script>
+  /* Proqres /api/job/<id> ilə oxunur — v2.4 hər 4 saniyədən bir
+     location.reload() çağırıb bütün səhifəni yenidən çəkirdi. */
+  ARMA.watchJob({{ job.id|tojson }});
+</script>
+{% endif %}
+{% endblock %}

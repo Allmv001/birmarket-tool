@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}WhatsApp yoxlaması — ARMA{% endblock %}
+{% block pagetitle %}WhatsApp yoxlaması{% endblock %}
+{% block content %}
+
+<h1>WhatsApp elanları 💬</h1>
+<p class="sub">Qrupdakı elan mesajlarını olduğu kimi kopyalayıb aşağı yapışdırın —
+  sistem hər sətirdən <b>model kodunu</b> və <b>maya qiymətini</b> özü çıxarır və
+  birmarket.az-da axtarır. Şəkil yükləməyə ehtiyac yoxdur: bu qruplarda kod və qiymət
+  şəklin altındakı mətndə yazılır, mətndən oxumaq həm pulsuzdur, həm daha dəqiqdir.</p>
+
+{% for e in errors or [] %}
+  <div class="notice warn">⚠️ {{ e }}</div>
+{% endfor %}
+
+{% if results %}
+<h2>Nəticələr{% if source %} — {{ source }}{% endif %}</h2>
+<div class="card flush">
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Kod</th><th>Tip</th><th class="num">Maya (₼)</th>
+        <th class="num">Tapılan</th><th class="num">≥hədd</th>
+        <th class="num">Ən yüksək marja</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for r in results %}
+    <tr class="{{ 'row-match' if r['hits'] }}">
+      <td><b>{{ r['code'] }}</b></td>
+      <td class="muted">{{ r['type'] }}</td>
+      <td class="num">{{ '%.2f'|format(r['cost']) }}</td>
+      <td class="num">{{ r['found'] }}</td>
+      <td class="num">{{ r['hits'] }}</td>
+      <td class="num">{% if r['best'] %}+{{ r['best'] }}%{% else %}—{% endif %}</td>
+      <td class="shrink">
+        <a href="{{ url_for('views.check_detail', check_id=r['id']) }}">Aç →</a>
+        {% if r['links'] %}
+          <button type="button" class="btn btn-icon wa"
+                  data-wa="{{ r['links']|join('|') }}" data-maya="{{ r['cost'] }}"
+                  title="bu kodun {{ r['links']|length }} uyğun linkini göndər">➤</button>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+<div class="actions tight">
+  <button type="button" class="btn btn-wa" id="waAll">
+    ➤ Bütün uyğun linkləri göndər ({{ results|sum(attribute='hits') }})</button>
+  <button type="button" class="btn btn-ghost" id="copyAllWa">📋 Hamısını kopyala</button>
+  <a class="btn btn-ghost"
+     href="{{ url_for('views.links_page', ids=results|map(attribute='id')|join(',')) }}">
+    🔗 Linklər səhifəsində aç</a>
+  <span class="muted">→ WhatsApp <b>+{{ wa_number }}</b> · hər linkin altında öz mayası</span>
+</div>
+<p class="muted" style="margin-top:var(--s3)">
+  <b>"Tapılan 0"</b> = bu kod birmarket-də ümumiyyətlə yoxdur → <b>boş niş</b>,
+  ilk siz qoya bilərsiniz.</p>
+{% endif %}
+
+{% if unknown %}
+<h2>Kodsuz məhsullar — Google Lens 🔍</h2>
+<div class="card">
+<p class="muted">Bu sətirlərdə model kodu yoxdur. Şəkli
+  <a href="https://lens.google.com/upload" target="_blank" rel="noopener">Google Lens</a>-ə
+  yükləyin — Lens birbaşa birmarket.az məhsul linklərini qaytarır; tapdığınız kartı
+  "Yeni yoxlama"ya əlavə edin.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th class="num">Maya (₼)</th><th class="num">Hədd (₼)</th>
+             <th>Elan mətni</th><th></th></tr></thead>
+  <tbody>
+  {% for u in unknown %}
+    <tr>
+      <td class="num">{{ '%.2f'|format(u['cost']) }}</td>
+      <td class="num">{{ '%.2f'|format(u['cost'] * threshold) }}</td>
+      <td>{{ u['raw'] }}</td>
+      <td class="shrink">
+        <a target="_blank" rel="noopener"
+           href="https://birmarket.az/search/{{ (u['type'] or u['raw'])|urlencode }}">
+          birmarket-də axtar →</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endif %}
+
+<h2>Mətn yapışdır</h2>
+<div class="card">
+<form method="post"
+      onsubmit="var b=this.querySelector('button[type=submit]');
+                setTimeout(function(){ b.disabled=true;
+                  b.textContent='⏳ Axtarılır… səhifəni bağlamayın'; }, 0);">
+  <div class="field">
+    <label for="watext">💬 WhatsApp mətni (mesajları kopyalayıb yapışdırın)</label>
+    <textarea id="watext" name="text" rows="12" class="code"
+      placeholder="[18:05, 20.08.2026] +994 50 851 81 84: ⭐Raf 2603⭐ Böyük toster 48 manat&#10;⭐Raf 3007⭐ Nabor blendr Yeni Gəldi 30 manat&#10;Təzə gəldi Raf 5495 Pizza aparatı 88 manat"></textarea>
+    <div class="hint">💾 Qrup adı yazsanız mətn həmin qrupun <b>arxivində saxlanır</b>.
+      Növbəti dəfə mətn yapışdırmadan yalnız qrupun adını + "son neçə məhsul" yazmaq
+      kifayətdir — sistem arxivdən ən son N məhsulu götürüb yoxlayacaq.</div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <label for="source">Qrup adı{% if known_groups %}
+        <span class="muted">(saxlanmış: {{ known_groups|join(', ') }})</span>{% endif %}</label>
+      <input type="text" id="source" name="source" list="waGroups" value="{{ source or '' }}"
+             placeholder="məs. Fu_Electronics">
+      <datalist id="waGroups">
+        {% for gname in known_groups or [] %}<option value="{{ gname }}">{% endfor %}
+      </datalist>
+    </div>
+    <div>
+      <label for="limit">Son neçə məhsul? (0 = hamısı)</label>
+      <input type="text" id="limit" name="limit" value="150">
+    </div>
+    <div>
+      <label for="wthr">Marja həddi (əmsal)</label>
+      <input type="text" id="wthr" name="threshold" value="{{ threshold }}">
+    </div>
+    <div>
+      <label for="wbrands">Brend(lər) — istəyə bağlı, vergüllə</label>
+      <input type="text" id="wbrands" name="brands" placeholder="raf, lord">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">Mətni oxu və yoxla 💬</button>
+  </div>
+</form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if results %}
+<script>
+(function () {
+  var ALL = [
+    {% for r in results if r['links'] %}
+    { links: {{ r['links']|tojson }}, maya: {{ r['cost'] }} }{{ "," if not loop.last }}
+    {% endfor %}
+  ];
+  function allText() {
+    return ALL.map(function (x) { return ARMA.block(x.links, x.maya); }).join('\n\n');
+  }
+  function on(id, fn) {
+    var b = document.getElementById(id);
+    if (b) b.addEventListener('click', function () { fn(b); });
+  }
+  on('waAll', function (b) {
+    var t = allText();
+    if (!t) { ARMA.toast('Uyğun link tapılmadı.', 'warn'); return; }
+    ARMA.wa(t, b);
+  });
+  on('copyAllWa', function (b) {
+    var t = allText();
+    if (!t) { ARMA.toast('Uyğun link tapılmadı.', 'warn'); return; }
+    ARMA.copy(t, b);
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

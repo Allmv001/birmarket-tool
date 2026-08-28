@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Ayarlar — ARMA{% endblock %}
+{% block pagetitle %}Ayarlar{% endblock %}
+{% block content %}
+
+<h1>Ayarlar</h1>
+<p class="sub">Sistem parametrləri — yeni yoxlamalara tətbiq olunur
+  (köhnə yoxlamalar öz həddini saxlayır).</p>
+
+<form method="post">
+  <div class="card" style="max-width:560px">
+    <h3>Marja və göndərmə</h3>
+
+    <div class="field">
+      <label for="margin_pct">Standart marja həddi (%)</label>
+      <input type="number" id="margin_pct" name="margin_pct" step="0.5" min="0" max="500"
+             value="{{ margin_pct }}">
+      <div class="hint">Məs. 20 → maya × 1.20 və yuxarı qiymətlər "uyğun" sayılır.</div>
+    </div>
+
+    <div class="field">
+      <label for="wa_number">WhatsApp nömrəsi (linklərin göndəriləcəyi)</label>
+      <input type="text" id="wa_number" name="wa_number" value="{{ wa_number }}"
+             placeholder="994503377176">
+      <div class="hint">Ölkə kodu ilə, yalnız rəqəm — məs. <b>994503377176</b>.
+        ➤ düyməsi WhatsApp-ı hazır mesajla açır; siz yalnız <b>Göndər</b>-ə basırsınız.
+        WhatsApp təhlükəsizlik səbəbindən mesajı özü göndərmir — bu, onun öz
+        məhdudiyyətidir.</div>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:560px">
+    <h3>Axtarış davranışı</h3>
+    <p class="muted">Bu dəyərlər birmarket.az-a nə qədər yük salındığını idarə edir.
+      Sürət limitinə tez-tez düşürsünüzsə, fasiləni artırın.</p>
+
+    <div class="grid">
+      <div>
+        <label for="max_variants">Sorğu variantı (kod başına)</label>
+        <input type="number" id="max_variants" name="max_variants" min="1" max="12"
+               value="{{ max_variants }}">
+        <div class="hint">Defolt 4</div>
+      </div>
+      <div>
+        <label for="max_pages">Səhifə sayı (sorğu başına)</label>
+        <input type="number" id="max_pages" name="max_pages" min="1" max="10"
+               value="{{ max_pages }}">
+        <div class="hint">Defolt 5. Aşağı salmayın: R.209 üçün 3 səhifə
+          yeddi elandan yalnız beşini tapırdı. Sayt dolu olmayan səhifədə
+          onsuz da dayanır, ona görə dar sorğular bundan bahalaşmır.</div>
+      </div>
+      <div>
+        <label for="request_delay">Sorğular arası fasilə (saniyə)</label>
+        <input type="number" id="request_delay" name="request_delay" step="0.1"
+               min="0.2" max="10" value="{{ delay }}">
+        <div class="hint">Defolt 1.0</div>
+      </div>
+      <div>
+        <label for="page_size">Paneldə səhifə başına yoxlama</label>
+        <input type="number" id="page_size" name="page_size" min="5" max="200"
+               value="{{ page_size }}">
+        <div class="hint">Defolt 25</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:560px">
+    <h3>Yayın qaydaları</h3>
+    <p class="muted">«🚀 Yayın» səhifəsinin qiymət qaydaları. Köhnə alətdə bu
+      dörd sayı koda yazılmışdı — burada dəyişdirilir.</p>
+
+    <div class="field">
+      <label for="own_stores">Öz mağazalar (bunlar satıcılar arasındadırsa keçilir)</label>
+      <input type="text" id="own_stores" name="own_stores" value="{{ pub.own_stores }}"
+             placeholder="Spark electronics, Spark Tech, PoWeR Tech, Pro Tech">
+      <p class="muted">Vergüllə ayır. Ən vacib qorumadır: öz elanını kəsməmək üçün.</p>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label for="min_margin">Minimum marja (₼)</label>
+        <input type="number" id="min_margin" name="min_margin" step="0.01" min="0"
+               value="{{ '%.2f'|format(pub.min_margin) }}">
+        <p class="muted">(ən ucuz − maya) bundan azdırsa keçilir.</p>
+      </div>
+      <div class="field">
+        <label for="markup">Satıcı olmayanda: maya ×</label>
+        <input type="number" id="markup" name="markup" step="0.01" min="1" max="10"
+               value="{{ '%.2f'|format(pub.markup) }}">
+        <p class="muted">Diqqət: rəqibsiz məhsullarda qiyməti TƏK BAŞINA bu təyin
+          edir, çarpaz yoxlama yoxdur.</p>
+      </div>
+      <div class="field">
+        <label for="bot_low">Bot alt limit: maya ×</label>
+        <input type="number" id="bot_low" name="bot_low" step="0.01" min="0.1" max="10"
+               value="{{ '%.2f'|format(pub.bot_low) }}">
+      </div>
+      <div class="field">
+        <label for="bot_high_plus">Bot üst limit: endirimli + ₼</label>
+        <input type="number" id="bot_high_plus" name="bot_high_plus" step="0.01" min="0"
+               value="{{ '%.2f'|format(pub.bot_high_plus) }}">
+      </div>
+      <div class="field">
+        <label for="publish_qty">Miqdar</label>
+        <input type="number" id="publish_qty" name="publish_qty" min="1" max="9999"
+               value="{{ pub.publish_qty }}">
+      </div>
+      <div class="field">
+        <label for="publish_store">Mağaza etiketi (dəftərdə ayırmaq üçün)</label>
+        <input type="text" id="publish_store" name="publish_store"
+               value="{{ pub.publish_store }}" placeholder="boş buraxıla bilər">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="bot_url">Bot saytı</label>
+      <input type="text" id="bot_url" name="bot_url" value="{{ pub.bot_url }}"
+             placeholder="https://...onrender.com">
+      <p class="muted"><b>Canlı yazı üçün MƏCBURİDİR.</b> Boşdursa
+        «🚀 Canlı yazı» işləmir. Təmizləmək üçün sahəni boşalt və aşağıdakı
+        qutunu işarələ.</p>
+      <label><input type="checkbox" name="clear_bot_url" value="1"> Bot ünvanını təmizlə</label>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:560px">
+    <h3>Claude API açarı</h3>
+    <p class="muted">Yalnız <b>şəkildən</b> avtomatik oxuma üçün lazımdır.
+      WhatsApp mətn rejimi açarsız tam işləyir və daha dəqiqdir.</p>
+
+    <div class="field">
+      <label for="api_key">Açar</label>
+      <input type="password" id="api_key" name="api_key" autocomplete="off"
+             placeholder="{% if has_key %}Təyin olunub: {{ key_hint }} — dəyişmək üçün yenisini yazın{% else %}sk-ant-...{% endif %}">
+      <div class="hint">console.anthropic.com → API Keys bölməsindən alınır. Açar yalnız
+        bu kompüterdəki lokal bazada saxlanır və yalnız şəkil oxunarkən Anthropic
+        API-yə göndərilir. Boş buraxsanız mövcud açar dəyişmir.</div>
+    </div>
+
+    {% if has_key %}
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:var(--s2);font-weight:600">
+        <input type="checkbox" name="clear_key" value="1">
+        Saxlanmış açarı sil
+      </label>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn btn-primary">Yadda saxla</button>
+  </div>
+</form>
+
+<h2>Görünüş</h2>
+<div class="card" style="max-width:560px">
+  <p class="muted" style="margin:0">İşıqlı / qaranlıq rejimi sol aşağıdakı
+    <b>☀ ☾ ◐</b> düymələri ilə seçilir. Seçim bu brauzerdə yadda qalır;
+    <b>◐</b> sistem parametrini izləyir.</p>
+</div>
+
+<h2>Məlumat</h2>
+<div class="card" style="max-width:560px">
+  <p class="muted" style="margin:0">Bütün məlumatlar <b>data/birmarket.db</b>
+    (SQLite) faylındadır — ehtiyat nüsxə üçün sadəcə <b>data/</b> qovluğunu kopyalayın.
+    Yüklənən şəkillər <b>data/uploads/</b> altındadır.</p>
+</div>
+{% endblock %}

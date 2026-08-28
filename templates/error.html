@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — ARMA{% endblock %}
+{% block pagetitle %}Xəta {{ code }}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="empty">
+    <span class="icon" aria-hidden="true">
+      {% if code == 404 %}🔍{% elif code == 413 %}📦{% else %}⚠️{% endif %}
+    </span>
+    <h3>{{ title }}</h3>
+    <p>{{ detail }}</p>
+    <div class="actions" style="justify-content:center">
+      <a href="{{ url_for('views.dashboard') }}" class="btn btn-primary">← Panelə qayıt</a>
+      <a href="{{ url_for('views.new_check') }}" class="btn btn-ghost">＋ Yeni yoxlama</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

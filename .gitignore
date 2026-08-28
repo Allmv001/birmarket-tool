@@ -1,0 +1,25 @@
+# --- HƏR MAŞIN ÖZ data/ QOVLUĞUNU ÖZÜ YARADIR ---
+# Bu qovluq HEÇ VAXT depoya girmir. İçində:
+#   .secret_key        sessiya imzalama açarı
+#   birmarket.db       maya (maya dəyəri) qiymətləri — rəqabətə açıq məlumat
+#   arma.log           iş jurnalı
+#   chrome-profile/    girişdən sonra CANLI pazaryeri sessiya kukiləri
+#   uploads/           yüklənən şəkillər
+# İki maşın arasında köçürülməməlidir — hər biri özünü qursun.
+data/
+
+# Virtual mühit: requirements.txt-dən yenidən qurulur (160 MB).
+.venv/
+venv/
+
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Redaktor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+*.swp

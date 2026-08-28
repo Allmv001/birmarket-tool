@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 310" width="460" height="310"
+     role="img" aria-label="ARMA">
+  <title>ARMA</title>
+  <defs>
+    <linearGradient id="armaCopper" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#A85A3E"/>
+      <stop offset=".45" stop-color="#C87A57"/>
+      <stop offset="1" stop-color="#F0BCA0"/>
+    </linearGradient>
+  </defs>
+
+  <g fill="#1B4B5E" fill-rule="evenodd">
+    <!-- A: tirsiz — kurdele onun orta xətti rolunu oynayır -->
+    <path d="M150 120 L262 286 L200 286 L150 200 L100 286 L38 286 Z"/>
+    <!-- M -->
+    <path d="M262 286 L262 120 L306 120 L341 200 L376 120 L420 120 L420 286
+             L378 286 L378 178 L352 238 L330 238 L304 178 L304 286 Z"/>
+  </g>
+
+  <!-- Mis kurdele: A-nın sol qolunu tam tutur, sonra sağa-yuxarı süzülüb
+       böyük parıltının içində bitir. Ağ kontur onu teal A-dan ayırır. -->
+  <path d="M38 286 L150 120 L134 172
+           C200 100 285 52 373 58
+           C320 92 235 128 114 238 L100 286 Z"
+        fill="url(#armaCopper)" stroke="#ffffff" stroke-width="8"
+        stroke-linejoin="round"/>
+
+  <!-- parıltılar və hilal -->
+  <g fill="url(#armaCopper)">
+    <path d="M360 25 C366.6 59.4 366.6 59.4 401 66 C366.6 72.6 366.6 72.6 360 107
+             C353.4 72.6 353.4 72.6 319 66 C353.4 59.4 353.4 59.4 360 25 Z"/>
+    <path d="M388 16 C390.1 26.9 390.1 26.9 401 29 C390.1 31.1 390.1 31.1 388 42
+             C385.9 31.1 385.9 31.1 375 29 C385.9 26.9 385.9 26.9 388 16 Z"/>
+    <path d="M323 83 C324.4 90.6 324.4 90.6 332 92 C324.4 93.4 324.4 93.4 323 101
+             C321.6 93.4 321.6 93.4 314 92 C321.6 90.6 321.6 90.6 323 83 Z"/>
+    <path d="M414 58 C432 62 442 74 440 90 C438 104 428 112 416 111
+             C430 98 432 74 414 58 Z"/>
+  </g>
+</svg>

@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Yayın — ARMA{% endblock %}
+{% block pagetitle %}Yayın{% endblock %}
+{% block content %}
+
+<h1>Yayın 🚀</h1>
+<p class="sub">Linkləri + mayanı yapışdır → sistem rəqibləri çəkir, qiyməti hesablayır,
+  dəftərə yazır. Sonra <b>quru koşu</b> nə yazılacağını göstərir, ən sonda
+  <b>canlı yazı</b> kabinetə və bota gedir. Üç addım qəsdəndir: canlı qiymət
+  geri alınmır.</p>
+
+<div class="tiles">
+  <div class="tile"><b>{{ counts.planned }}</b><span>planlandı</span></div>
+  <div class="tile"><b>{{ counts.dry_run }}</b><span>canlıya hazır</span></div>
+  <div class="tile"><b>{{ counts.live }}</b><span>yazıldı</span></div>
+  <div class="tile"><b>{{ counts.needs_review }}</b><span>baxılmalı</span></div>
+  <div class="tile"><b>{{ counts.failed }}</b><span>alınmadı</span></div>
+  <div class="tile"><b>{{ counts.skipped }}</b><span>keçildi</span></div>
+</div>
+
+{% if pending.ready or pending.failed or pending.review %}
+<div class="notice info" role="status">
+  <b>Yarımçıq iş var.</b>
+  {% if pending.ready %}{{ pending.ready }} sətir canlıya hazır və hələ yazılmayıb.{% endif %}
+  {% if pending.failed %} {{ pending.failed }} sətir alınmadı.{% endif %}
+  {% if pending.review %} {{ pending.review }} sətir baxılmalıdır.{% endif %}
+  <br><span class="muted">Koşu kəsilsə də irəliləyiş itmir: hər məhsulun
+  vəziyyəti yazıldığı anda bazaya düşür, yazılmışlar bir daha yazılmır.</span>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-head"><h3>1. Planla</h3></div>
+  <form method="post" action="{{ url_for('publish.plan') }}">
+    <div class="field">
+      <label for="links">Linklər və maya</label>
+      <textarea id="links" name="links" rows="8"
+                placeholder="https://birmarket.az/product/2579394-...&#10;275 ₼&#10;https://birmarket.az/product/2634681-...&#10;1 234,56 ₼"></textarea>
+      <p class="muted">Hər link ayrı sətirdə, mayası altında — WhatsApp-dan
+        kopyaladığın kimi. «Linklər» səhifəsinin çıxışı birbaşa yapışdırıla bilər.</p>
+    </div>
+    <div class="field">
+      <label>
+        <input type="checkbox" name="allow_ambiguous" value="1">
+        «1.234» kimi birmənalı olmayan mayanı minlik say (1234)
+      </label>
+      <p class="muted">Defolt <b>bağlıdır</b>. Açıq olmasa sistem belə sətirdə
+        dayanıb soruşur — çünki «1.234» həm 1234, həm 1.234 ola bilər və yanlış
+        oxunuş məhsulu min dəfə ucuz elan edir.</p>
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Planla</button>
+    </div>
+  </form>
+</div>
+
+{% if rows %}
+<div class="card">
+  <div class="card-head">
+    <h3>2-3. Dəftər</h3>
+    <div class="actions">
+      <button type="button" class="btn btn-ghost btn-sm" id="selAll">hamısını seç</button>
+      <button type="button" class="btn btn-sm" id="btnDry">🧪 Quru koşu</button>
+      <button type="button" class="btn btn-danger btn-sm" id="btnLive">🚀 Canlı yazı</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnRetry">↻ Uğursuzları növbəyə qoy</button>
+    </div>
+  </div>
+
+  <label class="muted" style="display:block;margin:6px 0 10px">
+    <input type="checkbox" id="allowNoSeller">
+    Rəqibsiz məhsulları da yaz (qiymət yalnız <b>maya × markup</b>-dan gəlir,
+    müqayisə ediləcək rəqib yoxdur)
+  </label>
+
+  <div class="rate-warn" id="msg" role="status"></div>
+
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th></th><th>Kod</th><th>Məhsul</th><th>Maya</th>
+      <th>Endirimli</th><th>Köhnə</th><th>Bot alt</th><th>Bot üst</th>
+      <th>Say</th><th>Vəziyyət</th><th>Səbəb / xəta</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr data-id="{{ r.id }}">
+        <td>{% if r.state in ('planned', 'dry_run', 'failed') %}
+              <input type="checkbox" class="sel" checked>{% endif %}</td>
+        <td><a class="code-link" href="{{ r.url }}" target="_blank"
+               rel="noopener">{{ r.product_id }}</a></td>
+        <td>{{ (r.name or '')[:46] }}</td>
+        <td>{{ '%.2f'|format(r.cost or 0) }}</td>
+        <td>{% if r.discount %}
+              <input class="disc" value="{{ '%.2f'|format(r.discount) }}"
+                     size="8" aria-label="Endirimli qiymət">
+            {% endif %}</td>
+        <td>{% if r.price %}{{ '%.2f'|format(r.price) }}{% endif %}</td>
+        <td>{% if r.bot_low %}{{ '%.2f'|format(r.bot_low) }}{% endif %}</td>
+        <td>{% if r.bot_high %}{{ '%.2f'|format(r.bot_high) }}{% endif %}</td>
+        <td>{{ r.qty or '' }}</td>
+        <td><span class="pill">{{ r.state }}</span>
+            {% if r.attempts %}<span class="muted">×{{ r.attempts }}</span>{% endif %}</td>
+        <td class="muted">{{ r.last_error or r.reason or '' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted">Endirimli qiyməti dəyişsən <b>köhnə, bot alt və bot üst özü
+    yenidən hesablanır</b> — əl ilə düzəliş qaydanı pozmur.</p>
+</div>
+{% else %}
+<div class="card"><p class="empty">Dəftər boşdur. Yuxarıdan linkləri yapışdırıb
+  «Planla» de.</p></div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const msg = $('#msg');
+  const LIVE_CONFIRM = {{ live_confirm|tojson }};
+
+  function say(text, kind) {
+    msg.textContent = text;
+    msg.className = 'rate-warn' + (kind ? ' ' + kind : '');
+    msg.style.display = text ? 'block' : 'none';
+  }
+  const selected = () => $$('tr[data-id]')
+    .filter(tr => tr.querySelector('.sel') && tr.querySelector('.sel').checked)
+    .map(tr => +tr.dataset.id);
+
+  /* Same-origin fetch: Origin başlığı avtomatik gedir, CSRF qatı onu yoxlayır. */
+  async function post(url, body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify(body || {})
+    });
+    return r.json();
+  }
+
+  $('#selAll').onclick = () => {
+    const boxes = $$('.sel');
+    const target = !boxes.every(b => b.checked);
+    boxes.forEach(b => { b.checked = target; });
+  };
+
+  /* Endirimli dəyişəndə serverdə törəmələr yenidən hesablanır (tapıntı Y3) */
+  $$('.disc').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const id = inp.closest('tr').dataset.id;
+      const j = await post('/api/publish/' + id + '/discount', {endirimli: inp.value});
+      if (!j.ok) { say(j.error, 'warn'); return; }
+      const tds = inp.closest('tr').children;
+      tds[5].textContent = (+j.row.price).toFixed(2);
+      tds[6].textContent = (+j.row.bot_low).toFixed(2);
+      tds[7].textContent = (+j.row.bot_high).toFixed(2);
+      say('Yeniləndi: köhnə və bot limitləri yenidən hesablandı.', 'ok');
+    });
+  });
+
+  $('#btnDry').onclick = async () => {
+    const ids = selected();
+    if (!ids.length) return say('Heç nə seçilməyib.', 'warn');
+    say('Quru koşu gedir…');
+    const allowNS = $('#allowNoSeller').checked;
+    const j = await post('/api/publish/dry-run', {ids: ids, allow_no_seller: allowNS});
+    if (!j.ok) return say(j.error, 'warn');
+    let line = 'Quru koşu: ' + j.ready + ' sətir canlıya hazırdır, '
+             + j.blocked + ' sətir bloklandı.';
+    if (j.no_seller) line += ' Bunlardan ' + j.no_seller + ' sətir RƏQİBSİZDİR'
+             + (allowNS ? ' (təsdiqlədin).' : ' — yazmaq üçün yuxarıdakı qutunu işarələ.');
+    say(line, 'ok');
+    setTimeout(() => location.reload(), 1200);
+  };
+
+  $('#btnLive').onclick = async () => {
+    const ids = selected();
+    if (!ids.length) return say('Heç nə seçilməyib.', 'warn');
+    const typed = prompt(
+      ids.length + ' məhsul CANLI olaraq kabinetə yazılacaq və botda limitlər '
+      + 'qoyulacaq. Bu geri alınmır.\n\nDavam etmək üçün «'
+      + LIVE_CONFIRM + '» yazın:');
+    if (typed !== LIVE_CONFIRM) return say('Ləğv edildi.', 'warn');
+    const j = await post('/api/publish/live', {ids: ids, confirm: LIVE_CONFIRM});
+    if (!j.ok) return say(j.error, 'warn');
+    say('Canlı yazı başladı (' + j.total + ' məhsul). Brauzer açılır — giriş '
+        + 'tələb olunsa özün daxil ol.', 'ok');
+    poll(j.job);
+  };
+
+  $('#btnRetry').onclick = async () => {
+    const j = await post('/api/publish/retry', {});
+    if (!j.ok) return say(j.error, 'warn');
+    say(j.requeued + ' sətir yenidən növbəyə qoyuldu.', 'ok');
+    setTimeout(() => location.reload(), 1000);
+  };
+
+  async function poll(jobId) {
+    const r = await fetch('/api/job/' + jobId, {headers: {'Accept': 'application/json'}});
+    const j = await r.json();
+    if (!j.ok) return say('İş tapılmadı.', 'warn');
+    const lines = (j.results || []).map(x => x.line).filter(Boolean);
+    say(lines.slice(-6).join('\n') || 'işləyir…');
+    if (!j.finished) return setTimeout(() => poll(jobId), 2000);
+    say((j.errors || []).length
+        ? 'Bitdi, xətalarla: ' + j.errors.join(' · ')
+        : 'Bitdi. Dəftər yenilənir…', j.errors.length ? 'warn' : 'ok');
+    setTimeout(() => location.reload(), 1500);
+  }
+})();
+</script>
+{% endblock %}

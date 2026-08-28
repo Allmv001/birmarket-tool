@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Linklər — ARMA{% endblock %}
+{% block pagetitle %}Uyğun linklər{% endblock %}
+{% block content %}
+
+<h1>🔗 Uyğun linklər — hamısı bir yerdə</h1>
+<p class="sub">
+  {% if ids %}Seçilmiş yoxlamaların{% else %}{{ day }} tarixli yoxlamaların{% endif %}
+  marja həddini keçən bütün elanları: <b>{{ total }}</b> link, <b>{{ groups|length }}</b> kod.
+  ✕ düyməsi ilə istəmədiyiniz linki siyahıdan çıxara bilərsiniz — seçim yadda qalır.
+</p>
+
+<form method="get" action="{{ url_for('views.links_page') }}" class="card tight"
+      style="display:flex;gap:var(--s3);align-items:flex-end;flex-wrap:wrap">
+  <div>
+    <label for="day">Tarix</label>
+    <input type="date" id="day" name="day" value="{{ day }}">
+  </div>
+  <button type="submit" class="btn btn-primary">Göstər</button>
+  {% if ids %}
+    <a href="{{ url_for('views.links_page', day=day) }}" class="btn btn-ghost">
+      ✕ Seçimi ləğv et</a>
+  {% endif %}
+</form>
+
+{% if groups %}
+<div class="card">
+  <div class="actions tight">
+    <button type="button" class="btn btn-primary" id="copybtn">📋 Hamısını kopyala</button>
+    <button type="button" class="btn btn-wa" id="wabtn">➤ Hamısını göndər</button>
+    <a class="btn btn-ghost" href="{{ url_for('views.links_export', ids=ids, day=day) }}">
+      ⬇ Excel yüklə</a>
+    <span class="muted">→ WhatsApp <b>+{{ wa_number_g }}</b> · hər linkin altında maya</span>
+  </div>
+  <div class="field" style="margin-top:var(--s4)">
+    <label for="copyarea">Kopyalanacaq mətn (hər linkin altında maya qiyməti)</label>
+    <textarea id="copyarea" class="code" readonly style="height:230px">{{ copy_text }}</textarea>
+    <div class="hint">📋 düyməsi mətni panoya köçürür — birbaşa WhatsApp-a yapışdıra bilərsiniz.</div>
+  </div>
+</div>
+
+<h2>Kodlara görə</h2>
+<div class="card flush">
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr><th>Kod</th><th class="num">Maya (₼)</th><th class="num">Qiymət (₼)</th>
+        <th class="num">Marja</th><th>Link</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% for grp in groups %}
+    {% set c = grp.check %}
+    {% for o in grp.offers %}
+    <tr class="row-match">
+      <td>{% if loop.first %}<b>{{ c['code'] }}</b>{% endif %}</td>
+      <td class="num">{% if loop.first %}{{ '%.2f'|format(c['cost']) }}{% endif %}</td>
+      <td class="num">{{ '%.2f'|format(o['price']) }}</td>
+      <td class="num">+{{ o['margin'] }}%</td>
+      <td><a href="{{ o['url'] }}" target="_blank" rel="noopener">{{
+        o['url']|replace('https://birmarket.az', '') }}</a></td>
+      <td class="shrink">
+        <button type="button" class="btn btn-icon" data-copy="{{ o['url'] }}"
+                data-maya="{{ c['cost'] }}" title="linki (maya ilə) kopyala">📋</button>
+        <button type="button" class="btn btn-icon wa" data-wa="{{ o['url'] }}"
+                data-maya="{{ c['cost'] }}" title="bu linki göndər">➤</button>
+        {% if loop.first and grp.offers|length > 1 %}
+          <button type="button" class="btn btn-icon"
+                  data-copy="{{ grp.offers|map(attribute='url')|join('|') }}"
+                  data-maya="{{ c['cost'] }}"
+                  title="{{ c['code'] }} kodunun bütün linklərini kopyala"
+                  >📋×{{ grp.offers|length }}</button>
+          <button type="button" class="btn btn-icon wa"
+                  data-wa="{{ grp.offers|map(attribute='url')|join('|') }}"
+                  data-maya="{{ c['cost'] }}"
+                  title="{{ c['code'] }} kodunun bütün linklərini göndər"
+                  >➤×{{ grp.offers|length }}</button>
+        {% endif %}
+        <form method="post" action="{{ url_for('views.exclude_offer', offer_id=o['id']) }}"
+              style="display:inline">
+          <input type="hidden" name="back"
+                 value="{{ url_for('views.links_page', ids=ids, day=day) }}">
+          <button class="btn btn-danger" type="submit"
+                  title="bu linki siyahıdan çıxar">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+
+{% else %}
+<div class="card">
+  <div class="empty">
+    <span class="icon" aria-hidden="true">🔗</span>
+    <h3>Bu seçimdə uyğun link yoxdur</h3>
+    <p>Seçilmiş tarixdə marja həddini keçən elan tapılmadı. Başqa tarix seçin
+       və ya Paneldən yoxlamalara baxın.</p>
+    <div class="actions" style="justify-content:center">
+      <a href="{{ url_for('views.dashboard') }}" class="btn btn-primary">← Panelə qayıt</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var area = document.getElementById('copyarea');
+  if (!area) return;
+  var cb = document.getElementById('copybtn');
+  if (cb) cb.addEventListener('click', function () { ARMA.copy(area.value, cb); });
+  var wb = document.getElementById('wabtn');
+  if (wb) wb.addEventListener('click', function () { ARMA.wa(area.value, wb); });
+  area.addEventListener('click', function () { area.select(); });
+})();
+</script>
+{% endblock %}

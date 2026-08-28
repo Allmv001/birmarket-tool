@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}{{ c['code'] }} yoxlaması — ARMA{% endblock %}
+{% block pagetitle %}Yoxlama · {{ c['code'] }}{% endblock %}
+{% block content %}
+
+<h1>{{ c['code'] }}
+  {% if c['ptype'] %}<span class="muted" style="font-size:15px">· {{ c['ptype'] }}</span>{% endif %}
+</h1>
+<p class="sub">{{ c['created_at'] }}{% if c['note'] %} · {{ c['note'] }}{% endif %}</p>
+
+<div class="tiles">
+  <div class="tile">
+    <div class="label">Maya</div>
+    <div class="value">{{ '%.2f'|format(c['cost']) }} ₼</div>
+  </div>
+  <div class="tile">
+    <div class="label">Hədd (×{{ c['threshold'] }})</div>
+    <div class="value">{{ '%.2f'|format(limit) }} ₼</div>
+    <div class="hint">bu qiymətdən yuxarı = uyğun</div>
+  </div>
+  <div class="tile copper">
+    <div class="label">Uyğun təklif</div>
+    <div class="value accent">{{ offers|selectattr('is_match')|list|length }}</div>
+    <div class="hint">cəmi {{ offers|length }} təklifdən</div>
+  </div>
+</div>
+
+<div class="rate-warn" id="rateWarn" role="status"></div>
+
+<div class="actions">
+  <button type="button" class="btn btn-primary" id="btnSearch">
+    🤖 Axtar / Yenilə — rəqib elanları və qiymətləri</button>
+  <a href="{{ url_for('views.export_xlsx', check_id=c['id']) }}" class="btn btn-ghost">
+    ⬇ Excel export</a>
+  <form method="post" action="{{ url_for('views.delete_check', check_id=c['id']) }}"
+        class="spacer"
+        onsubmit="return confirm('Bu yoxlama və bütün təklifləri silinsin?')">
+    <button class="btn btn-danger" type="submit">Yoxlamanı sil</button>
+  </form>
+</div>
+
+<details class="plain" style="margin-top:var(--s4)">
+  <summary>🔎 Birmarket axtarış variantları ({{ searches|length }})</summary>
+  <div class="actions tight">
+    {% for label, url in searches %}
+      <a href="{{ url }}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">
+        🔎 {{ label }}</a>
+    {% endfor %}
+  </div>
+</details>
+
+{% if c['image'] %}
+<div class="card">
+  <div class="label">Elan şəkli</div>
+  <img class="thumb" src="{{ url_for('views.uploaded', name=c['image']) }}" alt="Elan şəkli">
+</div>
+{% endif %}
+
+<h2>Təkliflər</h2>
+<div class="card flush">
+{% if offers %}
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th style="width:34px"><input type="checkbox" id="chkAll" aria-label="Hamısını seç"></th>
+      <th>Məhsul</th><th>Satıcı</th><th class="num">Qiymət (₼)</th>
+      <th class="num">Marja</th><th>Status</th><th>Link</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for o in offers %}
+    <tr class="{{ 'row-match' if o['is_match'] }}">
+      {# seçim DB-də saxlanır — picked NULL olduqda avtomatik uyğunluq götürülür #}
+      <td>{% if o['url'] %}<input type="checkbox" class="pick"
+            data-link="{{ o['url'] }}" data-id="{{ o['id'] }}"
+            aria-label="Bu linki seç"
+            {% if (o['picked'] == 1) or (o['picked'] is none and o['is_match']) %}checked{% endif %}>
+          {% endif %}</td>
+      <td>{{ o['name'] }}</td>
+      <td>{{ o['seller'] or '—' }}</td>
+      <td class="num">{{ '%.2f'|format(o['price']) }}{% if o['old_price'] %}
+        <span class="strike">{{ '%.2f'|format(o['old_price']) }}</span>{% endif %}{% if o['ph_count'] %}
+        <span class="muted" title="qiymət {{ o['ph_count'] }} dəfə dəyişib">↕{{ o['ph_count'] }}</span>
+        {% endif %}</td>
+      <td class="num">{{ '+' if o['margin'] >= 0 }}{{ o['margin'] }}%</td>
+      <td>
+        {% if o['is_match'] %}<span class="pill ok">✓ uyğun</span>
+        {% elif o['code_match'] == 0 %}<span class="pill warn">kod uyğun deyil</span>
+        {% elif o['code_match'] == 1 and o['price'] >= limit %}
+          <span class="pill warn">≈ ehtimal — yoxla</span>
+        {% else %}<span class="pill low">hədddən aşağı</span>{% endif %}
+      </td>
+      <td class="shrink">
+        {% if o['url'] %}
+          <a href="{{ o['url'] }}" target="_blank" rel="noopener">aç ↗</a>
+          <button class="btn btn-icon" type="button" data-copy="{{ o['url'] }}"
+                  data-maya="{{ c['cost'] }}" title="linki (maya ilə) kopyala">📋</button>
+          <button class="btn btn-icon wa" type="button" data-wa="{{ o['url'] }}"
+                  data-maya="{{ c['cost'] }}"
+                  title="+{{ wa_number }} nömrəsinə göndər">➤</button>
+        {% else %}—{% endif %}
+      </td>
+      <td class="shrink">
+        <form method="post" action="{{ url_for('views.delete_offer', offer_id=o['id']) }}"
+              style="display:inline">
+          <button class="btn btn-danger" type="submit" title="sətri sil">✕</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">
+  <span class="icon" aria-hidden="true">🔍</span>
+  <h3>Hələ təklif yoxdur</h3>
+  <p>"Axtar / Yenilə" düyməsi birmarket.az-da bu kodu axtarır. Sayt cavab vermirsə,
+     aşağıdakı kopyala-yapışdır üsulu ehtiyatdadır.</p>
+</div>
+{% endif %}
+</div>
+
+{# matched_links / all_links view-dan gəlir — Jinja {% set %} bloklar arasında görünmür #}
+{% if all_links %}
+<h2>Linklər</h2>
+<div class="card">
+  <div class="actions tight">
+    <button type="button" class="btn btn-primary" id="copyMatched"
+            {% if not matched_links %}disabled{% endif %}>
+      📋 Uyğun linkləri kopyala ({{ matched_links|length }})</button>
+    <button type="button" class="btn btn-ghost" id="copyPicked"
+      >📋 Seçilmişləri kopyala (<span id="pickNc">0</span>)</button>
+    <button type="button" class="btn btn-ghost" id="copyAll">
+      📋 Bütün linklər ({{ all_links|length }})</button>
+    <button type="button" class="btn btn-ghost" id="copyReport">📋 Hesabat formatında</button>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn btn-wa" id="waMatched"
+            {% if not matched_links %}disabled{% endif %}>
+      ➤ Uyğun linkləri göndər ({{ matched_links|length }})</button>
+    <button type="button" class="btn btn-wa outline" id="waPicked"
+      >➤ Seçilmişləri göndər (<span id="pickN">0</span>)</button>
+    <span class="muted">→ WhatsApp <b>+{{ wa_number }}</b> · hər linkin altında maya
+      <b>{{ '%.2f'|format(c['cost']) }} ₼</b></span>
+  </div>
+  <div class="field" style="margin-top:var(--s4)">
+    <label for="linksBox">Kopyalanacaq mətn</label>
+    <textarea id="linksBox" class="code" readonly style="min-height:100px"
+      >{% for l in (matched_links if matched_links else all_links) %}{{ l }}
+{% endfor %}</textarea>
+    <div class="hint">Sahəyə klik etsəniz hamısı seçilir — Ctrl+C ilə də götürə bilərsiniz.</div>
+  </div>
+</div>
+{% endif %}
+
+<h2>Təklif əlavə et</h2>
+<div class="card">
+  <p class="muted">💡 Eyni məhsul birmarket-də bir neçə ayrı satış kartı ola bilər
+    (R.209 / RAF209 / kodsuz). Yuxarıdakı axtarış variantlarını bir-bir açın, hər
+    səhifənin mətnini bura yapışdırın — dublikatlar avtomatik atılır.</p>
+
+  <details class="plain" open>
+    <summary>📋 Səhifə mətnini yapışdır (avtomatik çıxarış)</summary>
+    <form method="post" action="{{ url_for('views.paste_offers', check_id=c['id']) }}">
+      <div class="field">
+        <label for="pasted">birmarket.az nəticələrini seçib kopyalayın (Ctrl+A → Ctrl+C)
+          və bura yapışdırın</label>
+        <textarea id="pasted" name="pasted" class="code"
+          placeholder="-22 %&#10;83.99 ₼&#10;108.00 ₼&#10;4.31 ₼ x 24 ay&#10;Vafli cihazı RAF R.209"></textarea>
+      </div>
+      <div class="field">
+        <label for="pasteUrl">Məhsul linki (bütün çıxarılan sətirlərə tətbiq olunur)</label>
+        <input type="url" id="pasteUrl" name="url" placeholder="https://birmarket.az/product/...">
+      </div>
+      <div class="actions tight">
+        <button type="submit" class="btn btn-primary">Mətndən çıxar</button>
+      </div>
+    </form>
+  </details>
+
+  <hr class="sep">
+
+  <details class="plain">
+    <summary>✏️ Manual sətir əlavə et</summary>
+    <form method="post" action="{{ url_for('views.add_offer', check_id=c['id']) }}" class="grid">
+      <div class="full">
+        <label for="oname">Məhsul adı *</label>
+        <input type="text" id="oname" name="name" required
+               placeholder="məs. Vafli cihazı RAF R.209">
+      </div>
+      <div><label for="oseller">Satıcı</label>
+        <input type="text" id="oseller" name="seller" placeholder="məs. Aura Shop"></div>
+      <div><label for="oprice">Qiymət (₼) *</label>
+        <input type="text" id="oprice" name="price" required placeholder="83.99"></div>
+      <div><label for="oold">Köhnə qiymət (₼)</label>
+        <input type="text" id="oold" name="old_price" placeholder="108.00"></div>
+      <div class="full"><label for="ourl">Link</label>
+        <input type="url" id="ourl" name="url" placeholder="https://birmarket.az/product/..."></div>
+      <div class="actions full tight">
+        <button type="submit" class="btn btn-primary">Əlavə et</button>
+      </div>
+    </form>
+  </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var CHECK_ID = {{ c['id'] }};
+  var CODE = {{ c['code']|tojson }};
+  var MAYA = {{ '%.2f'|format(c['cost']) }};
+  var matched = {{ matched_links|tojson }};
+  var all = {{ all_links|tojson }};
+  var rows = [
+    {% for o in offers if o['is_match'] and o['url'] %}
+    { price: {{ o['price'] }}, margin: {{ o['margin'] }}, url: {{ o['url']|tojson }} }{{ "," if not loop.last }}
+    {% endfor %}
+  ];
+
+  var box = document.getElementById('linksBox');
+  if (box) box.addEventListener('click', function () { box.select(); });
+
+  function withMaya(links) { return ARMA.block(links, MAYA); }
+  function setBox(t) { if (box) box.value = t; return t; }
+  function picks() {
+    return Array.prototype.map.call(
+      document.querySelectorAll('.pick:checked'), function (c) { return c.dataset.link; });
+  }
+  function on(id, fn) {
+    var b = document.getElementById(id);
+    if (b) b.addEventListener('click', function () { fn(b); });
+  }
+
+  on('copyMatched', function (b) { ARMA.copy(setBox(withMaya(matched)), b); });
+  on('copyAll', function (b) { ARMA.copy(setBox(withMaya(all)), b); });
+  on('copyPicked', function (b) {
+    var p = picks();
+    if (!p.length) { ARMA.toast('Əvvəlcə cədvəldən ən azı bir sətir seçin.', 'warn'); return; }
+    ARMA.copy(setBox(withMaya(p)), b);
+  });
+  on('copyReport', function (b) {
+    var lines = rows.map(function (r) {
+      return CODE + ' · ' + r.price.toFixed(2) + ' ₼ (+' + r.margin + '%) · ' + r.url;
+    });
+    ARMA.copy(setBox(lines.join('\n')), b);
+  });
+  on('waMatched', function (b) { ARMA.wa(withMaya(matched), b); });
+  on('waPicked', function (b) {
+    var p = picks();
+    if (!p.length) { ARMA.toast('Əvvəlcə cədvəldən ən azı bir sətir seçin.', 'warn'); return; }
+    ARMA.wa(withMaya(p), b);
+  });
+
+  /* --- seçim DB-yə yazılır — arxaya qayıdıb girəndə yadda qalır --- */
+  function refreshPickN() {
+    var n = picks().length;
+    ['pickN', 'pickNc'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = n;
+    });
+  }
+  function savePick(cb) {
+    ARMA.post('/api/offer/' + cb.dataset.id + '/pick', { v: cb.checked ? 1 : 0 })
+      .catch(function (e) { ARMA.toast('Seçim yadda saxlanmadı: ' + e.message, 'warn'); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.pick'), function (c) {
+    c.addEventListener('change', function () { savePick(c); refreshPickN(); });
+  });
+
+  var chkAll = document.getElementById('chkAll');
+  if (chkAll) chkAll.addEventListener('change', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.pick'), function (c) {
+      c.checked = chkAll.checked;
+    });
+    refreshPickN();
+    /* Tək sorğu — v2.4 hər sətir üçün ayrıca POST göndərirdi */
+    ARMA.post('/api/check/' + CHECK_ID + '/pick-all', { v: chkAll.checked ? 1 : 0 })
+      .catch(function (e) { ARMA.toast('Seçim yadda saxlanmadı: ' + e.message, 'warn'); });
+  });
+  refreshPickN();
+
+  /* --- axtarış: səhifə donmur, nəticə toast ilə gəlir --- */
+  var btn = document.getElementById('btnSearch');
+  if (btn) btn.addEventListener('click', function () {
+    var restore = ARMA.busy(btn, 'Axtarılır…');
+    ARMA.post('/api/check/' + CHECK_ID + '/autosearch')
+      .then(function (j) {
+        restore();
+        ARMA.toast(j.message, (j.added || j.updated) ? 'ok' : 'info');
+        var warn = document.getElementById('rateWarn');
+        if (warn && j.rate_limited) {
+          warn.classList.add('show');
+          warn.textContent = '⏳ Sürət limiti — ' + j.cooldown_seconds +
+            ' saniyə sonra yenidən cəhd edin.';
+        }
+        if (j.added || j.updated) setTimeout(function () { location.reload(); }, 1100);
+      })
+      .catch(function (e) {
+        restore();
+        ARMA.toast('Axtarış alınmadı: ' + e.message +
+          ' — kopyala-yapışdır üsulu ehtiyatdadır.', 'danger');
+      });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block pagetitle %}Panel{% endblock %}
+{% block content %}
+<h1>Panel</h1>
+<p class="sub">WhatsApp maya qiymətləri ilə birmarket.az listinqlərinin müqayisəsi ·
+  uyğunluq həddi: <b>maya × {{ threshold }}</b>
+  (≥{{ ((threshold - 1) * 100)|round(0)|int }}% marja)</p>
+
+<div class="tiles">
+  <div class="tile">
+    <div class="label">Yoxlanan kod</div>
+    <div class="value">{{ stats['codes'] or 0 }}</div>
+  </div>
+  <div class="tile copper">
+    <div class="label">Uyğun listinq</div>
+    <div class="value accent">{{ stats['hits'] or 0 }}</div>
+    <div class="hint">hədd üstü elanlar</div>
+  </div>
+  <div class="tile copper">
+    <div class="label">Ən yüksək marja</div>
+    <div class="value accent">{% if stats['best'] %}+{{ stats['best'] }}%{% else %}—{% endif %}</div>
+  </div>
+  <div class="tile">
+    <div class="label">Son yoxlama</div>
+    <div class="value sm">{{ last }}</div>
+  </div>
+</div>
+
+{% for job in running if not job.finished %}
+<div class="notice info">
+  ⏳ Toplu yoxlama gedir — <b>{{ job.done }}/{{ job.total }}</b>
+  {% if job.current %}(hazırda: {{ job.current }}){% endif %}
+  · <a href="{{ url_for('views.batch_job', job_id=job.id) }}">proqresi aç →</a>
+</div>
+{% endfor %}
+
+<form method="get" action="{{ url_for('views.dashboard') }}" class="searchbar" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Kod və ya məhsul tipi ilə axtar…"
+         aria-label="Yoxlamalarda axtar">
+  <button type="submit" class="btn btn-ghost btn-sm">Axtar</button>
+  {% if q %}
+    <a href="{{ url_for('views.dashboard') }}" class="btn btn-ghost btn-sm">✕ Təmizlə</a>
+  {% endif %}
+  <span class="muted">{{ total_rows }} yoxlama</span>
+</form>
+
+<h2>Axtarış sessiyaları</h2>
+
+{% if not groups %}
+  <div class="card">
+    <div class="empty">
+      <span class="icon" aria-hidden="true">📋</span>
+      <h3>{% if q %}Bu axtarışa uyğun yoxlama yoxdur{% else %}Hələ yoxlama yoxdur{% endif %}</h3>
+      <p>{% if q %}Başqa kod yazıb yenidən cəhd edin.{% else %}
+        WhatsApp qrupundan mətn yapışdırın və ya tək kod yoxlayın — nəticələr burada
+        tarix və saata görə qruplaşacaq.{% endif %}</p>
+      <div class="actions" style="justify-content:center">
+        <a href="{{ url_for('views.whatsapp') }}" class="btn btn-primary">
+          💬 WhatsApp mətni yapışdır</a>
+        <a href="{{ url_for('views.new_check') }}" class="btn btn-ghost">＋ Tək yoxlama</a>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% for g in groups %}
+{% set dt = g.title[:16] %}
+<details class="card session" {% if loop.first %}open{% endif %}>
+  <summary>
+    <span class="session-title">📅 {{ dt[8:10] }}.{{ dt[5:7] }}.{{ dt[:4] }} · {{ dt[11:16] }}</span>
+    <span class="muted">— {{ g.src }}</span>
+    <span class="session-pills">
+      <span class="pill low">{{ g['items']|length }} kod</span>
+      {% if g.links %}
+        <span class="pill ok">✓ {{ g.hits }} kodda {{ g.links }} uyğun link</span>
+      {% else %}
+        <span class="pill warn">uyğun link yoxdur</span>
+      {% endif %}
+    </span>
+  </summary>
+
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34px"><input type="checkbox" class="gall" aria-label="Hamısını seç"></th>
+        <th>Kod</th><th class="num">Maya (₼)</th><th>Saat</th><th>Nəticə</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for c in g['items'] %}
+      {% set clinks = links_map.get(c['id'], []) %}
+      <tr data-links="{{ clinks|join('|') }}" data-maya="{{ c['cost'] }}">
+        <td>{% if clinks %}<input type="checkbox" class="gpick"
+              aria-label="{{ c['code'] }} kodunu seç">{% endif %}</td>
+        <td><a href="{{ url_for('views.check_detail', check_id=c['id']) }}"
+               class="code-link">{{ c['code'] }}</a></td>
+        <td class="num">{{ '%.2f'|format(c['cost']) }}</td>
+        <td class="muted">{{ c['created_at'][11:16] }}</td>
+        <td>
+          {% if c['hits'] %}
+            <span class="pill ok">✓ {{ c['hits'] }}/{{ c['total'] }} uyğun{% if c['best'] %}
+              · max +{{ c['best'] }}%{% endif %}</span>
+          {% elif c['total'] %}
+            <span class="pill low">{{ c['total'] }} təklif, uyğun yoxdur</span>
+          {% else %}
+            <span class="pill warn">boş niş — birmarket-də tapılmadı</span>
+          {% endif %}
+        </td>
+        <td class="shrink">
+          <a href="{{ url_for('views.check_detail', check_id=c['id']) }}">Aç →</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if g.links %}
+  <div class="actions session-actions">
+    <button type="button" class="btn btn-ghost act-copy-picked"
+      >📋 Seçilmişləri kopyala (<span class="pickn">0</span>)</button>
+    <button type="button" class="btn btn-primary act-copy-all"
+      >📋 Uyğunların hamısını kopyala ({{ g.links }})</button>
+    <button type="button" class="btn btn-wa outline act-wa-picked">➤ Seçilmişləri göndər</button>
+    <button type="button" class="btn btn-wa act-wa-all">➤ Hamısını göndər</button>
+    <span class="muted">hər linkin altında öz maya qiyməti</span>
+  </div>
+  {% endif %}
+</details>
+{% endfor %}
+
+{% if pages > 1 %}
+<nav class="pager" aria-label="Səhifələr">
+  {% if page > 1 %}
+    <a class="btn btn-ghost btn-sm"
+       href="{{ url_for('views.dashboard', q=q, page=page-1) }}">← Əvvəlki</a>
+  {% endif %}
+  <span class="page-info">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}
+    <a class="btn btn-ghost btn-sm"
+       href="{{ url_for('views.dashboard', q=q, page=page+1) }}">Növbəti →</a>
+  {% endif %}
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  /* Qrup daxilində linkləri topla — hər linkin altında ÖZ maya qiyməti durur,
+     ona görə blok-blok yığılır (bir sətir = bir kod). */
+  function gather(det, onlyPicked) {
+    var blocks = [];
+    Array.prototype.forEach.call(det.querySelectorAll('tbody tr'), function (tr) {
+      var links = (tr.dataset.links || '').split('|').filter(Boolean);
+      if (!links.length) return;
+      if (onlyPicked) {
+        var cb = tr.querySelector('.gpick');
+        if (!cb || !cb.checked) return;
+      }
+      blocks.push(ARMA.block(links, tr.dataset.maya));
+    });
+    return blocks.join('\n\n');
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('details.session'), function (det) {
+    function refresh() {
+      var n = det.querySelectorAll('.gpick:checked').length;
+      var el = det.querySelector('.pickn');
+      if (el) el.textContent = n;
+    }
+    Array.prototype.forEach.call(det.querySelectorAll('.gpick'), function (c) {
+      c.addEventListener('change', refresh);
+    });
+
+    var all = det.querySelector('.gall');
+    if (all) all.addEventListener('change', function () {
+      Array.prototype.forEach.call(det.querySelectorAll('.gpick'), function (c) {
+        c.checked = all.checked;
+      });
+      refresh();
+    });
+
+    function on(sel, fn) {
+      var b = det.querySelector(sel);
+      if (b) b.addEventListener('click', function () { fn(b); });
+    }
+    on('.act-copy-picked', function (b) {
+      var t = gather(det, true);
+      if (!t) { ARMA.toast('Əvvəlcə siyahıdan kod seçin.', 'warn'); return; }
+      ARMA.copy(t, b);
+    });
+    on('.act-copy-all', function (b) { ARMA.copy(gather(det, false), b); });
+    on('.act-wa-picked', function (b) {
+      var t = gather(det, true);
+      if (!t) { ARMA.toast('Əvvəlcə siyahıdan kod seçin.', 'warn'); return; }
+      ARMA.wa(t, b);
+    });
+    on('.act-wa-all', function (b) { ARMA.wa(gather(det, false), b); });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Yeni yoxlama — ARMA{% endblock %}
+{% block pagetitle %}Yeni yoxlama{% endblock %}
+{% block content %}
+
+<h1>Yeni yoxlama</h1>
+<p class="sub">WhatsApp elanındakı məlumatları daxil edin — <b>kod</b> və
+  <b>maya qiyməti</b> kifayətdir. Yaradılan kimi birmarket.az avtomatik axtarılır.</p>
+
+<div class="card">
+<form method="post" enctype="multipart/form-data" class="grid"
+      onsubmit="var b=this.querySelector('button[type=submit]');
+                setTimeout(function(){ b.disabled=true;
+                  b.textContent='⏳ Axtarılır…'; }, 0);">
+  <div>
+    <label for="code">Model kodu *</label>
+    <input type="text" id="code" name="code" required placeholder="məs. R.209" autofocus>
+  </div>
+  <div>
+    <label for="cost">Maya qiyməti (₼) *</label>
+    <input type="text" id="cost" name="cost" required placeholder="məs. 68">
+  </div>
+  <div>
+    <label for="ptype">Məhsul tipi</label>
+    <input type="text" id="ptype" name="ptype" placeholder="məs. sendviç cihazı">
+    <div class="hint">Tip + kod sorğuları ən geniş nəticəni verir — yazsanız
+      axtarış xeyli yaxşılaşır.</div>
+  </div>
+  <div>
+    <label for="brands">Brend(lər) — YALNIZ marka adları, vergüllə</label>
+    <input type="text" id="brands" name="brands" placeholder="məs. raf, lord">
+  </div>
+  <div>
+    <label for="threshold">Marja həddi (əmsal)</label>
+    <input type="text" id="threshold" name="threshold" value="{{ threshold }}">
+    <div class="hint">1.20 → maya × 1.20 və yuxarı qiymətlər "uyğun" sayılır.</div>
+  </div>
+  <div>
+    <label for="note">Qeyd (mənbə, satıcı və s.)</label>
+    <input type="text" id="note" name="note" placeholder="məs. Fu_Electronics qrupu, elan 07:38">
+  </div>
+  <div class="full">
+    <label for="image">Elan şəkli (istəyə bağlı — arxiv üçün saxlanır)</label>
+    <input type="file" id="image" name="image" accept="image/*">
+  </div>
+  <div class="actions full tight">
+    <button type="submit" class="btn btn-primary">Yarat və avtomatik axtar 🤖</button>
+    <a href="{{ url_for('views.dashboard') }}" class="btn btn-ghost">Ləğv et</a>
+  </div>
+</form>
+</div>
+
+<p class="muted">💡 Çoxlu məhsul varsa tək-tək yazmayın —
+  <a href="{{ url_for('views.whatsapp') }}">💬 WhatsApp</a> səhifəsinə qrup mətnini
+  olduğu kimi yapışdırın, sistem kodları və qiymətləri özü çıxarır.</p>
+{% endblock %}

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>Giriş — ARMA</title>
+
+<link rel="icon" type="image/svg+xml"
+      href="{{ url_for('static', filename='img/favicon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+
+<script>
+  /* Mövzunu boyanmadan ƏVVƏL tətbiq et — base.html ilə eyni məntiq */
+  (function(){
+    try {
+      var m = localStorage.getItem('arma-theme');
+      if (m && m !== 'system') document.documentElement.setAttribute('data-theme', m);
+    } catch (e) {}
+  })();
+</script>
+
+<style>
+  /* Giriş səhifəsi base.html-i genişləndirmir: yan panel və naviqasiya
+     giriş etməmiş istifadəçiyə heç bir mənada lazım deyil. Yalnız token
+     qatından bəslənən bir neçə sətir stil. */
+  .auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:var(--s6);background:var(--bg)}
+  .auth-box{width:100%;max-width:380px}
+  .auth-brand{display:flex;align-items:center;gap:12px;justify-content:center;
+    margin-bottom:var(--s6)}
+  .auth-brand img{width:44px;height:44px;display:block}
+  .auth-brand .logo-text{align-items:flex-start}
+  .auth-brand .logo-word{font-size:24px}
+  .auth-foot{text-align:center;margin-top:var(--s5);font-size:var(--t-xs);
+    color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-box">
+
+    <div class="auth-brand">
+      <img src="{{ url_for('static', filename='img/logo-mark.svg') }}" alt="" aria-hidden="true">
+      <span class="logo-text">
+        <span class="logo-word">ARMA</span>
+        <span class="logo-sub">MARJA SİSTEMİ</span>
+      </span>
+    </div>
+
+    <div class="card">
+      {% if error %}
+        <div class="notice danger" role="alert">{{ error }}</div>
+      {% endif %}
+      {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for kind, m in msgs %}
+          <div class="notice {{ kind if kind in ('ok','warn','info','danger') else 'info' }}"
+               role="status">{{ m }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post" autocomplete="on">
+        <div class="field">
+          <label for="user">İstifadəçi adı</label>
+          <input type="text" id="user" name="user" value="{{ user_hint }}"
+                 autocomplete="username" autocapitalize="off" spellcheck="false"
+                 {% if not locked %}autofocus{% endif %} required>
+        </div>
+        <div class="field">
+          <label for="password">Parol</label>
+          <input type="password" id="password" name="password"
+                 autocomplete="current-password" required
+                 {% if locked %}disabled{% endif %}>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary"
+                  style="width:100%;justify-content:center"
+                  {% if locked %}disabled{% endif %}>Daxil ol</button>
+        </div>
+      </form>
+    </div>
+
+    <p class="auth-foot">
+      birmarket.az marja izləyicisi<br>
+      Bu panel yalnız icazəli istifadəçilər üçündür.
+    </p>
+
+  </div>
+</div>
+</body>
+</html>

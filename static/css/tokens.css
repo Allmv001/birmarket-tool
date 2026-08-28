@@ -1,0 +1,132 @@
+/* =========================================================================
+   ARMA v4 — UI sistemi
+   Qat sırası: 1) token  2) əsas  3) tərtibat  4) komponent  5) səhifə  6) mobil
+   v2.4-dən fərq: rənglər/ölçülər hər yerdə token-dən gəlir, mövzu (işıqlı/
+   qaranlıq) əl ilə seçilə bilir, komponentlərin hamısı bir yerdə toplanıb.
+   ====================================================================== */
+
+/* ---------------------------------------------------------------- 1) TOKEN */
+:root{
+  /* --- brend --- */
+  --teal-900:#0f2f2e; --teal-800:#16403f; --teal-700:#1d5c5a; --teal-600:#237370;
+  --teal-100:#e2efee;
+  --copper-700:#a8543c; --copper-600:#c96f54; --copper-300:#e8b39c;
+  --copper-100:#f8e9e2;
+  --wa:#25D366; --wa-dark:#1da851;
+
+  /* --- səth və mətn (işıqlı) --- */
+  --bg:#f4f6f7;
+  --surface:#ffffff;
+  --surface-2:#fafbfc;
+  --surface-3:#f0f3f4;
+  --ink:#16242b;
+  --ink-2:#54666f;
+  --muted:#8b9aa3;
+  --line:#e4e9ec;
+  --line-strong:#cfd8dd;
+
+  /* --- vəziyyət --- */
+  --ok:#0f766e; --ok-bg:#d7f0ec; --ok-line:#93d5cb;
+  --warn:#9a6320; --warn-bg:#fbeed8; --warn-line:#e8c891;
+  --danger:#b4342c; --danger-bg:#fbe3e1; --danger-line:#eeaba6;
+  --info:#1d5c5a; --info-bg:#e2efee; --info-line:#a8cdc9;
+
+  /* --- akssent --- */
+  --accent:var(--teal-700);
+  --accent-ink:#ffffff;
+  --accent-soft:var(--teal-100);
+  --ring:color-mix(in srgb, var(--teal-700) 45%, transparent);
+
+  /* --- ölçü şkalası (4px addım) --- */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+  --s7:32px; --s8:40px; --s9:56px;
+
+  /* --- künc --- */
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px; --r-full:999px;
+
+  /* --- tipografiya --- */
+  --font:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;
+  --mono:'Cascadia Mono',Consolas,'SF Mono',monospace;
+  --t-xs:11.5px; --t-sm:13px; --t-md:14px; --t-lg:16px; --t-xl:20px;
+  --t-2xl:24px; --t-3xl:30px;
+
+  /* --- kölgə --- */
+  --sh-1:0 1px 2px rgba(16,38,44,.06);
+  --sh-2:0 1px 3px rgba(16,38,44,.07), 0 6px 18px rgba(16,38,44,.05);
+  --sh-3:0 8px 28px rgba(16,38,44,.13), 0 2px 6px rgba(16,38,44,.07);
+
+  /* --- hərəkət --- */
+  --fast:.13s cubic-bezier(.4,0,.2,1);
+  --base:.22s cubic-bezier(.4,0,.2,1);
+
+  --sidebar-w:236px;
+  --content-max:1140px;
+}
+
+/* Qaranlıq rejim — iki yol:
+   a) sistem seçimi (istifadəçi əl ilə seçməyibsə)
+   b) data-theme="dark" (Ayarlardakı düymə)
+   v2.4-də yalnız (a) vardı; istifadəçi mövzunu seçə bilmirdi. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161a; --surface:#192126; --surface-2:#151c21; --surface-3:#1f292f;
+    --ink:#e7edf0; --ink-2:#a5b3bb; --muted:#71828c;
+    --line:#26323a; --line-strong:#35444e;
+    --teal-100:#1b3634;
+    --ok:#5eead4; --ok-bg:#123f3c; --ok-line:#1f625c;
+    --warn:#f5c563; --warn-bg:#3d3115; --warn-line:#6b5424;
+    --danger:#f19a92; --danger-bg:#3d1f1c; --danger-line:#6d332e;
+    --info:#7fd4cf; --info-bg:#173432; --info-line:#2a544f;
+    --accent:#3f9b97; --accent-soft:#1b3634;
+    --copper-600:#e0906f; --copper-100:#3a271f;
+    --ring:color-mix(in srgb, #3f9b97 55%, transparent);
+    --sh-1:0 1px 2px rgba(0,0,0,.4);
+    --sh-2:0 1px 3px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.3);
+    --sh-3:0 8px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10161a; --surface:#192126; --surface-2:#151c21; --surface-3:#1f292f;
+  --ink:#e7edf0; --ink-2:#a5b3bb; --muted:#71828c;
+  --line:#26323a; --line-strong:#35444e;
+  --teal-100:#1b3634;
+  --ok:#5eead4; --ok-bg:#123f3c; --ok-line:#1f625c;
+  --warn:#f5c563; --warn-bg:#3d3115; --warn-line:#6b5424;
+  --danger:#f19a92; --danger-bg:#3d1f1c; --danger-line:#6d332e;
+  --info:#7fd4cf; --info-bg:#173432; --info-line:#2a544f;
+  --accent:#3f9b97; --accent-soft:#1b3634;
+  --copper-600:#e0906f; --copper-100:#3a271f;
+  --ring:color-mix(in srgb, #3f9b97 55%, transparent);
+  --sh-1:0 1px 2px rgba(0,0,0,.4);
+  --sh-2:0 1px 3px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.3);
+  --sh-3:0 8px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.35);
+}
+
+/* ---------------------------------------------------------------- 2) ƏSAS */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--font); font-size:var(--t-md); line-height:1.55;
+  background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent);text-underline-offset:2px}
+h1{font-size:var(--t-2xl);margin:0 0 var(--s1);font-weight:750;letter-spacing:-.015em}
+h2{font-size:var(--t-xs);color:var(--ink-2);margin:var(--s7) 0 var(--s3);
+   text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+h3{font-size:var(--t-lg);margin:0 0 var(--s2);font-weight:650}
+p{margin:0 0 var(--s3)}
+.sub{color:var(--ink-2);font-size:var(--t-md);margin:0 0 var(--s6);max-width:78ch}
+.muted{color:var(--muted);font-size:var(--t-sm)}
+.mono{font-family:var(--mono);font-size:var(--t-sm)}
+.nowrap{white-space:nowrap}
+.num,td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+hr.sep{border:none;border-top:1px solid var(--line);margin:var(--s5) 0}
+
+/* Klaviatura fokusu görünsün — siçanla klikdə görünməsin */
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px;border-radius:var(--r-sm)}
+:focus:not(:focus-visible){outline:none}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}

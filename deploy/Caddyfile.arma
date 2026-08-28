@@ -1,0 +1,47 @@
+# ARMA - arma.biraddim.com
+#
+# BU FAYLI /etc/caddy/Caddyfile UZERINE KOPYALAMAYIN.
+#
+# Hemin VPS-de eyni Caddy biraddim.com, app.biraddim.com, arvhome.ca ve
+# licencebase.com saytlarina da xidmet edir. Faylin uzerine yazmaq o
+# saytlarin hamisini ani olaraq salir. Bu fayl bir NUMUNEDIR: asagidaki
+# bloku movcud /etc/caddy/Caddyfile faylinin sonuna ELAVE EDIN.
+#
+# Sira vacibdir:
+#   1. Once DNS: arma.biraddim.com -> A -> 2.24.77.33
+#   2. DNS yayildiqdan sonra bu bloku elave edin
+#   3. caddy validate --config /etc/caddy/Caddyfile
+#   4. systemctl reload caddy
+# DNS gostermeden blok elave etseniz Caddy sertifikat almaga calisir ve
+# Let's Encrypt limitine dusur - hemin domen ucun saatlarla kilidlenir.
+
+arma.biraddim.com {
+	encode gzip zstd
+
+	# Tetbiq oz girisi ile qorunur (arma/auth.py: istifadeci + parol + tixac).
+	# Caddy ikinci bir parol sorusmur: iki qat bir-birini gucləndirmir, sadece
+	# istifadeciye iki ayri parol yaddasi yukleyir.
+	reverse_proxy 127.0.0.1:4300 {
+		# Tek kod axtarisi birmarket-in cavabini gozleyir. Toplu is arxa
+		# fonda gedir ve sorgu derhal qayidir, amma tek axtaris qayitmir.
+		transport http {
+			response_header_timeout 3m
+		}
+	}
+
+	# Sekil yuklemesi ucun. Tetbiqin oz heddi 64 MB (MAX_CONTENT_LENGTH);
+	# burani bir qeder yuxari qoyuruq ki, hedd asilanda istifadeci Caddy-nin
+	# quru xetasini yox, tetbiqin anlasilan 413 sehifesini gorsun.
+	request_body {
+		max_size 70MB
+	}
+
+	header {
+		# Panel hec vaxt axtaris sistemine dusmemelidir
+		X-Robots-Tag "noindex, nofollow"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+}
